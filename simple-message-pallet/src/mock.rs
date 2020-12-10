@@ -7,12 +7,16 @@ use frame_system::{self as system};
 use sp_core::H256;
 use sp_runtime::{
   testing::Header,
-  traits::{BlakeTwo256, Block as BlockT, IdentityLookup}, Perbill,
+  traits::{AccountIdConversion, BlakeTwo256, Block as BlockT, IdentityLookup},
+  ModuleId, Perbill,
 };
 
 use crate::{self as simpleMsg, Trait};
 use chainbridge as bridge;
 pub use pallet_balances as balances;
+
+pub const RELAYER_A: u64 = 0x2;
+pub const ENDOWED_BALANCE: u64 = 100_000_000;
 
 parameter_types! {
   pub const BlockHashCount: u64 = 250;
@@ -58,6 +62,16 @@ ord_parameter_types! {
   pub const One: u64 = 1;
 }
 
+impl pallet_balances::Trait for Test {
+    type Balance = u64;
+    type DustRemoval = ();
+    type Event = Event;
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type MaxLocks = MaxLocks;
+    type WeightInfo = ();
+}
+
 parameter_types! {
   pub const TestChainId: u8 = 5;
   pub const ProposalLifetime: u64 = 100;
@@ -73,6 +87,7 @@ impl bridge::Trait for Test {
 
 impl Trait for Test {
   type Event = Event;
+  type BridgeOrigin = bridge::EnsureBridge<Test>;
 }
 
 pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
@@ -85,11 +100,23 @@ frame_support::construct_runtime!(
     UncheckedExtrinsic = UncheckedExtrinsic
   {
     System: system::{Module, Call, Event<T>},
+    Balances: balances::{Module, Call, Storage, Config<T>, Event<T>},
     Bridge: bridge::{Module, Call, Storage, Event<T>},
     SimpleMsg: simpleMsg::{Module, Call, Event<T>}
   }
 );
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-  frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+  let bridge_id = ModuleId(*b"cb/bridg").into_account();
+  let mut t = frame_system::GenesisConfig::default()
+      .build_storage::<Test>()
+      .unwrap();
+  pallet_balances::GenesisConfig::<Test> {
+      balances: vec![(bridge_id, ENDOWED_BALANCE), (RELAYER_A, ENDOWED_BALANCE)],
+  }
+  .assimilate_storage(&mut t)
+  .unwrap();
+  let mut ext = sp_io::TestExternalities::new(t);
+  ext.execute_with(|| System::set_block_number(1));
+  ext
 }
