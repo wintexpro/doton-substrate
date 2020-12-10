@@ -16,14 +16,14 @@ pub trait Trait: frame_system::Trait + bridge::Trait {
 // Storage
 decl_storage! {
   trait Store for Module<T: Trait> as SimpleMessageStorage {
-    Messages: map hasher(blake2_128_concat) u64 => (T::AccountId, T::BlockNumber, String);
+    Messages: map hasher(blake2_128_concat) u64 => (T::AccountId, T::BlockNumber, Vec<u8>);
   }
 }
 
 // Events
 decl_event! {
   pub enum Event<T> where AccountId = <T as frame_system::Trait>::AccountId {
-    MessageCreated(AccountId, String),
+    MessageCreated(AccountId, Vec<u8>),
   }
 }
 
@@ -41,7 +41,7 @@ decl_module! {
 
     /// Write a message to chain
     #[weight = 10_000]
-    fn write_msg(origin, nonce: u64, msg: String) {
+    fn write_msg(origin, nonce: u64, msg: Vec<u8>) {
       let sender = ensure_signed(origin)?;
       ensure!(!Messages::<T>::contains_key(nonce), Error::<T>::MessageAlreadyExists);
 
