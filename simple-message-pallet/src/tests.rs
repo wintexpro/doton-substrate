@@ -2,12 +2,11 @@
 
 use super::*;
 use frame_support::{assert_ok};
-use super::mock::{new_test_ext, Origin, Call, Bridge, RELAYER_A};
+use super::mock::{new_test_ext, Origin, Call, Bridge, SimpleMsg, RELAYER_A};
 
 #[test]
-fn writeing_msg_should_work() {
+fn writeing_incoming_msg_should_work() {
   new_test_ext().execute_with(|| {
-
     let msg: Vec<u8> = vec![104, 101, 108, 108, 111];
 
     let proposal = Call::SimpleMsg(crate::Call::write_msg(0, msg));
@@ -26,13 +25,22 @@ fn writeing_msg_should_work() {
       src_id,
       r_id,
       Box::new(proposal.clone())
-  ));
+    ));
+  });
+}
 
-    // assert_ok!();
+#[test]
+fn send_msg_should_work() {
+  new_test_ext().execute_with(|| {
+    let msg: Vec<u8> = vec![104, 101, 108, 108, 111];
+    let dest_id = 1;
 
-    // let (_, _ , recived_msg_vec) = <Messages<Test>>::get(0);
-    // let recived_msg = String::from_utf8(recived_msg_vec).unwrap();
+    assert_ok!(Bridge::whitelist_chain(Origin::root(), dest_id));
 
-    // assert_eq!(recived_msg, "hello");
+    assert_ok!(SimpleMsg::send_msg(
+      Origin::signed(0x02),
+      msg,
+      dest_id,
+    ));
   });
 }

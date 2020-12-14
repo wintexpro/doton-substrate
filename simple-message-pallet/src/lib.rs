@@ -4,6 +4,7 @@
 use chainbridge as bridge;
 use frame_support::{decl_module, decl_storage, decl_event, decl_error, ensure, StorageMap};
 use frame_support::traits::{EnsureOrigin};
+use frame_system::{ensure_signed};
 use sp_std::prelude::*;
 
 mod mock;
@@ -16,11 +17,14 @@ pub trait Trait: frame_system::Trait + bridge::Trait {
 }
 
 pub type Message = Vec<u8>;
+pub type ChainId = u8;
+pub type Nonce = u64;
 
 // Storage
 decl_storage! {
   trait Store for Module<T: Trait> as SimpleMessageStorage {
-    Messages: map hasher(blake2_128_concat) u64 => (T::AccountId, T::BlockNumber, Message);
+    Inbox get(fn inbox): map hasher(blake2_128_concat) Nonce => (T::AccountId, T::BlockNumber, Message);
+    DestinationNonce get(fn nonce): map hasher(blake2_128_concat) ChainId => Nonce;
   }
 }
 
@@ -30,6 +34,7 @@ decl_event! {
     AccountId = <T as frame_system::Trait>::AccountId,
   {
     MessageCreated(AccountId, Message),
+    MessageReceived(AccountId, Message, ChainId, Nonce),
   }
 }
 
@@ -37,6 +42,7 @@ decl_event! {
 decl_error! {
   pub enum Error for Module<T: Trait> {
     MessageAlreadyExists,
+    InvalidDestination,
   }
 }
 
@@ -47,13 +53,24 @@ decl_module! {
 
     /// Write a message to chain
     #[weight = 10_000]
-    fn write_msg(origin, nonce: u64, msg: Message) {
+    fn write_msg(origin, nonce: Nonce, msg: Message) {
       let sender = T::BridgeOrigin::ensure_origin(origin)?;
-      ensure!(!Messages::<T>::contains_key(nonce), Error::<T>::MessageAlreadyExists);
+      ensure!(!Inbox::<T>::contains_key(nonce), Error::<T>::MessageAlreadyExists);
 
       let current_block = <frame_system::Module<T>>::block_number();
-      Messages::<T>::insert(nonce, (&sender, current_block, &msg));
+      Inbox::<T>::insert(nonce, (&sender, current_block, &msg));
       Self::deposit_event(RawEvent::MessageCreated(sender, msg));
+    }
+
+    /// Write a message to chain
+    #[weight = 10_000]
+    fn send_msg(origin, data: Message, dest_id: ChainId) {
+      let source = ensure_signed(origin)?;
+      ensure!(<bridge::Module<T>>::chain_whitelisted(dest_id), Error::<T>::InvalidDestination);
+
+      let nonce = Self::nonce(dest_id);
+      DestinationNonce::insert(dest_id, nonce + 1);
+      Self::deposit_event(RawEvent::MessageReceived(source, data, dest_id, nonce));
     }
   }
 }
