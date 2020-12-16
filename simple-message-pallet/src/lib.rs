@@ -33,7 +33,7 @@ decl_event! {
   pub enum Event<T> where
     AccountId = <T as frame_system::Trait>::AccountId,
   {
-    MessageCreated(AccountId, Message),
+    SimpleMessageTransfer(AccountId, Message),
     MessageReceived(AccountId, Message, ChainId, Nonce),
   }
 }
@@ -59,7 +59,7 @@ decl_module! {
 
       let current_block = <frame_system::Module<T>>::block_number();
       Inbox::<T>::insert(nonce, (&sender, current_block, &msg));
-      Self::deposit_event(RawEvent::MessageCreated(sender, msg));
+      Self::deposit_event(RawEvent::SimpleMessageTransfer(sender, msg));
     }
 
     /// Write a message to chain
