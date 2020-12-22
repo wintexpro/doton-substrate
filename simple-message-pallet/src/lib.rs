@@ -16,6 +16,7 @@ pub trait Trait: frame_system::Trait + bridge::Trait {
   type BridgeOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 }
 
+pub type ExtAddress = Vec<u8>;
 pub type Message = Vec<u8>;
 pub type ChainId = u8;
 pub type Nonce = u64;
@@ -33,7 +34,7 @@ decl_event! {
   pub enum Event<T> where
     AccountId = <T as frame_system::Trait>::AccountId,
   {
-    SimpleMessageTransfer(AccountId, Message),
+    SimpleMessageTransfer(ExtAddress, Message),
     MessageReceived(AccountId, Message, ChainId, Nonce),
   }
 }
@@ -53,13 +54,13 @@ decl_module! {
 
     /// Write a message to chain
     #[weight = 10_000]
-    fn write_msg(origin, nonce: Nonce, msg: Message) {
+    fn write_msg(origin, from: ExtAddress, nonce: Nonce, msg: Message) {
       let sender = T::BridgeOrigin::ensure_origin(origin)?;
       ensure!(!Inbox::<T>::contains_key(nonce), Error::<T>::MessageAlreadyExists);
 
       let current_block = <frame_system::Module<T>>::block_number();
       Inbox::<T>::insert(nonce, (&sender, current_block, &msg));
-      Self::deposit_event(RawEvent::SimpleMessageTransfer(sender, msg));
+      Self::deposit_event(RawEvent::SimpleMessageTransfer(from, msg));
     }
 
     /// Write a message to chain
