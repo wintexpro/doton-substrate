@@ -20,6 +20,8 @@ frame-support = { version = "2.0.0", default-features = false }
 frame-system = { version = "2.0.0", default-features = false }
 
 pallet-balances = { version = "2.0.0", default-features = false }
+dorr-pallet = { path = "../dorr-pallet" , default-features = false }
+rustc-hex = { version="2.1.0", default-features = false }
 
 [build-dependencies]
 wasm-builder-runner = { version = "2.0.0", package = "substrate-wasm-builder-runner"}
@@ -30,9 +32,11 @@ std = [
 	"serde",
 	"sp-std/std",
 	"sp-runtime/std",
-    "sp-io/std",
-    "sp-core/std",
+	"sp-io/std",
+	"sp-core/std",
 	"frame-support/std",
 	"frame-system/std",
 	"pallet-balances/std",
+	"dorr-pallet/std",
+	'rustc-hex/std',
 ]

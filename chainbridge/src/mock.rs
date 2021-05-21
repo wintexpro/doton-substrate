@@ -12,6 +12,8 @@ use sp_runtime::{
 };
 
 use crate::{self as bridge, Trait};
+use crate::sp_api_hidden_includes_decl_storage::hidden_include::traits::OnInitialize;
+use crate::sp_api_hidden_includes_decl_storage::hidden_include::traits::OnFinalize;
 pub use pallet_balances as balances;
 
 parameter_types! {
@@ -69,6 +71,17 @@ impl pallet_balances::Trait for Test {
 }
 
 parameter_types! {
+    pub const MaxActiveRelayers: u8 = 3;
+    pub const EpochDuration: u8 = 10;
+}
+
+impl dorr::Trait for Test {
+    type Event = Event;
+    type MaxActiveRelayers = MaxActiveRelayers;
+    type EpochDuration = EpochDuration;
+}
+
+parameter_types! {
     pub const TestChainId: u8 = 5;
     pub const ProposalLifetime: u64 = 50;
 }
@@ -93,6 +106,7 @@ frame_support::construct_runtime!(
         System: system::{Module, Call, Event<T>},
         Balances: balances::{Module, Call, Storage, Config<T>, Event<T>},
         Bridge: bridge::{Module, Call, Storage, Event<T>},
+        Dorr: dorr::{Module, Call, Storage, Event<T>},
     }
 );
 
@@ -139,6 +153,15 @@ pub fn new_test_ext_initialized(
         assert_eq!(Bridge::resource_exists(r_id), true);
     });
     t
+}
+
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+			Dorr::on_finalize(System::block_number());
+			System::on_finalize(System::block_number());
+			System::set_block_number(System::block_number() + 1);
+			System::on_initialize(System::block_number());
+	}
 }
 
 // Checks events against the latest. A contiguous set of events must be provided. They must

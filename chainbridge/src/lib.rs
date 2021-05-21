@@ -1,6 +1,7 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use dorr_pallet as dorr;
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage,
     dispatch::DispatchResult,
@@ -97,7 +98,7 @@ impl<AccountId, BlockNumber: Default> Default for ProposalVotes<AccountId, Block
     }
 }
 
-pub trait Trait: system::Trait {
+pub trait Trait: system::Trait + dorr::Trait {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
     /// Origin used to administer the pallet
     type AdminOrigin: EnsureOrigin<Self::Origin>;
@@ -159,6 +160,8 @@ decl_error! {
         RelayerAlreadyExists,
         /// Provided accountId is not a relayer
         RelayerInvalid,
+        /// Protected operation, must be performed by the active relayer
+        MustBeActiveRelayer,
         /// Protected operation, must be performed by relayer
         MustBeRelayer,
         /// Relayer has already submitted some vote for this proposal
@@ -298,6 +301,7 @@ decl_module! {
             ensure!(Self::is_relayer(&who), Error::<T>::MustBeRelayer);
             ensure!(Self::chain_whitelisted(src_id), Error::<T>::ChainNotWhitelisted);
             ensure!(Self::resource_exists(r_id), Error::<T>::ResourceDoesNotExist);
+            ensure!(<dorr::Module<T>>::sorted_active_relayers().binary_search(&who).is_ok(), Error::<T>::MustBeActiveRelayer);
 
             Self::vote_for(who, nonce, src_id, call)
         }
@@ -313,6 +317,7 @@ decl_module! {
             ensure!(Self::is_relayer(&who), Error::<T>::MustBeRelayer);
             ensure!(Self::chain_whitelisted(src_id), Error::<T>::ChainNotWhitelisted);
             ensure!(Self::resource_exists(r_id), Error::<T>::ResourceDoesNotExist);
+            ensure!(<dorr::Module<T>>::sorted_active_relayers().binary_search(&who).is_ok(), Error::<T>::MustBeActiveRelayer);
 
             Self::vote_against(who, nonce, src_id, call)
         }
@@ -336,7 +341,6 @@ decl_module! {
 
 impl<T: Trait> Module<T> {
     // *** Utility methods ***
-
     pub fn ensure_admin(o: T::Origin) -> DispatchResult {
         T::AdminOrigin::try_origin(o)
             .map(|_| ())
