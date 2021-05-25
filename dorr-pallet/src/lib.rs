@@ -40,7 +40,7 @@ impl Default for VrfResult {
 
 // Storage
 decl_storage! {
-	trait Store for Module<T: Trait> as SimpleMessageStorage {
+	trait Store for Module<T: Trait> as Dorr {
 		VrfResults get(fn vrf_results): map hasher(blake2_128_concat) T::AccountId => VrfResult;
 		PkToBlockNumber get(fn pk_to_block_number): map hasher(blake2_128_concat) Vec<u8> => <T as frame_system::Trait>::BlockNumber;
 		PkToEpoch get(fn pk_to_epoch): map hasher(blake2_128_concat) Vec<u8> => <T as frame_system::Trait>::BlockNumber;
