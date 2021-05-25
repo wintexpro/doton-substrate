@@ -3,7 +3,6 @@
 
 use codec::{Encode, Decode};
 use frame_support::{weights::Weight, decl_event, decl_module, decl_storage, decl_error, ensure, dispatch::DispatchResult, traits::{ Randomness, Get }};
-use pallet_randomness_collective_flip as randomness;
 use frame_system::{ensure_signed};
 use sp_std::prelude::*;
 
@@ -19,6 +18,8 @@ pub trait Trait: frame_system::Trait {
 
 	/// Maximum amount relayers in active
 	type MaxActiveRelayers: Get<u8>;
+
+	type RandomnessSource: Randomness<<Self as frame_system::Trait>::Hash>;
 }
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode)]
@@ -82,7 +83,7 @@ decl_module! {
 		const EpochDuration: u8 = T::EpochDuration::get();
 
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
-			<EpochToRandomness<T>>::insert(Self::get_current_epoch(), <randomness::Module<T>>::random_seed());
+			<EpochToRandomness<T>>::insert(Self::get_current_epoch(), T::RandomnessSource::random_seed());
 			0
 		}
 
