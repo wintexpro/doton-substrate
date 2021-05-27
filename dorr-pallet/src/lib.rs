@@ -5,6 +5,7 @@ use codec::{Encode, Decode};
 use frame_support::{weights::Weight, decl_event, decl_module, decl_storage, decl_error, ensure, dispatch::DispatchResult, traits::{ Randomness, Get }};
 use frame_system::{ensure_signed};
 use sp_std::prelude::*;
+use sp_core;
 
 mod mock;
 mod tests;
@@ -41,7 +42,7 @@ impl Default for VrfResult {
 
 // Storage
 decl_storage! {
-	trait Store for Module<T: Trait> as Dorr {
+	trait Store for Module<T: Trait> as DorrStorage {
 		VrfResults get(fn vrf_results): map hasher(blake2_128_concat) T::AccountId => VrfResult;
 		PkToBlockNumber get(fn pk_to_block_number): map hasher(blake2_128_concat) Vec<u8> => <T as frame_system::Trait>::BlockNumber;
 		PkToEpoch get(fn pk_to_epoch): map hasher(blake2_128_concat) Vec<u8> => <T as frame_system::Trait>::BlockNumber;
@@ -52,9 +53,9 @@ decl_storage! {
 // Events
 decl_event! {
 	pub enum Event<T> where
-			<T as frame_system::Trait>::Hash,
+			<T as frame_system::Trait>::BlockNumber,
 	{
-			Remark(Hash),
+			NewPKSetted(Vec<u8>, BlockNumber, BlockNumber),
 	}
 }
 
@@ -68,11 +69,15 @@ decl_error! {
 }
 
 // API
-// sp_api::decl_runtime_apis! {
-// 	pub trait Dorr<T: Trait> {
-// 		fn get_active_relayers() -> Vec<T::AccountId>;
-// 	}
-// }
+sp_api::decl_runtime_apis! {
+	pub trait DorrRuntimeApi {
+		fn is_active_pk(pk: Vec<u8>) -> bool;
+		fn get_active_relayers() -> Vec<Vec<u8>>;
+		fn get_epoch_by_pk(pk: Vec<u8>) -> u32;
+		fn get_public_randomness(epoch: u32) -> sp_core::H256;
+		fn get_current_epoch() -> u32;
+	}
+}
 
 // Callable Functions
 decl_module! {
@@ -101,6 +106,8 @@ decl_module! {
 				proof: Vec::new(),
 			});
 
+			Self::deposit_event(RawEvent::NewPKSetted(pk.clone(), <PkToBlockNumber<T>>::get(&pk), <PkToEpoch<T>>::get(&pk)));
+
 			Ok(())
 		}
 
@@ -108,14 +115,16 @@ decl_module! {
 		pub fn purge_pk(origin) -> DispatchResult {
 			let relayer = ensure_signed(origin)?;
 			let result = <VrfResults<T>>::get(&relayer);
+			let pk = result.pk;
+
+			<PkToBlockNumber<T>>::remove(&pk);
+			<PkToEpoch<T>>::remove(&pk);
 			
 			<VrfResults<T>>::insert(&relayer, VrfResult {
 				pk: Vec::new(),
 				val: Vec::new(),
 				proof: Vec::new(),
 			});
-
-			<PkToBlockNumber<T>>::remove(result.pk);
 
 			Ok(())
 		}
@@ -153,18 +162,18 @@ decl_module! {
 }
 
 impl<T: Trait> Module<T> {
-	fn get_epoch_by_pk(pk: Vec<u8>) -> <T as frame_system::Trait>::BlockNumber {
+	pub fn get_epoch_by_pk(pk: Vec<u8>) -> T::BlockNumber {
 		return <PkToEpoch<T>>::get(pk);
 	}
 
-	fn get_current_epoch() -> <T as frame_system::Trait>::BlockNumber {
+	pub fn get_current_epoch() -> T::BlockNumber {
 		let block = <frame_system::Module<T>>::block_number();
 		let epoch_duration: T::BlockNumber = T::BlockNumber::from(T::EpochDuration::get() as u32).into();
 
 		return (block + epoch_duration - ( 1 as u32 ).into()) / epoch_duration;
 	}
 
-	fn get_public_randomness(epoch: <T as frame_system::Trait>::BlockNumber) -> <T as frame_system::Trait>::Hash {
+	pub fn get_public_randomness(epoch: T::BlockNumber) -> <T as frame_system::Trait>::Hash {
 		return <EpochToRandomness<T>>::get(epoch);
 	}
 
@@ -180,15 +189,34 @@ impl<T: Trait> Module<T> {
 
 		let mut sorted: Vec<T::AccountId> = Vec::new();
 
-		for (account_id, _) in results.iter() {
+		for (account_id, result) in results.iter() {
+			if result.val.is_empty() {
+				continue;
+			}
 			if sorted.len() as u8 >= max_active_relayers{
-        break;
-    }
+				break;
+			}
 			sorted.push(account_id.clone());
 		}
 
 		sorted.sort();
 
 		return sorted;
+	}
+
+	pub fn get_active_pks() -> Vec<Vec<u8>> {
+		let account_ids = Self::sorted_active_relayers();
+		let mut pks: Vec<Vec<u8>> = Vec::new();
+
+		for account_id in &account_ids {
+			let result = <VrfResults<T>>::get(&account_id);
+			pks.push(result.pk);
+		}
+
+		return pks;
+	}
+
+	pub fn is_active(relayer_pk: Vec<u8>) -> bool {
+		Self::get_active_pks().binary_search(&relayer_pk).is_ok()
 	}
 }

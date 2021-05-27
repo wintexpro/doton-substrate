@@ -8,8 +8,9 @@ use super::mock::{new_test_ext, Origin, Call, Bridge, SimpleMsg, RELAYER_A};
 fn writeing_incoming_msg_should_work() {
   new_test_ext().execute_with(|| {
     let msg: Vec<u8> = vec![104, 101, 108, 108, 111];
+    let from: Vec<u8> = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    let proposal = Call::SimpleMsg(crate::Call::write_msg(0, msg));
+    let proposal = Call::SimpleMsg(crate::Call::write_msg(from, 0, msg));
     let prop_id = 1;
     let src_id = 1;
     let r_id = bridge::derive_resource_id(src_id, b"hash");

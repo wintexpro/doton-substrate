@@ -1,0 +1,32 @@
+[package]
+name = 'pallet-dorr-rpc'
+version = '0.0.1'
+authors = ['bykeks0x@gmail.com']
+edition = '2018'
+
+[dependencies]
+dorr-pallet = { default-features = false, path = './../../substrate/dorr-pallet' }
+
+#rpc
+jsonrpc-core = { version = "15.0.0", default-features = false }
+jsonrpc-derive = { version = "15.0.0", default-features = false }
+jsonrpc-core-client = { version = "15.0.0", default-features = false }
+
+# frame dependencies
+frame-system = { version = "2.0.0", default-features = false }
+
+# primitives
+sp-blockchain = { version = "2.0.1", default-features = false }
+sp-api = { version = '2.0.1', default-features = false }
+sp-runtime = { version = "2.0.1", default-features = false }
+sp-core = { version = "2.0.0", default-features = false }
+
+[features]
+default = ['std']
+std = [
+	'sp-api/std',
+	'sp-core/std',
+	'sp-runtime/std',
+	'dorr-pallet/std',
+	"frame-system/std",
+]

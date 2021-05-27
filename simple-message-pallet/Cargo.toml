@@ -20,9 +20,11 @@ sp-arithmetic = { version = "2.0.0", default-features = false }
 frame-support = { version = "2.0.0", default-features = false }
 frame-system = { version = "2.0.0", default-features = false }
 
+dorr-pallet = { path = "../dorr-pallet", default-features = false}
 chainbridge = { path = "../chainbridge", default-features = false}
 
 [dev-dependencies]
+pallet-randomness-collective-flip = { version = '2.0.0', default-features = false }
 pallet-balances = { version = "2.0.0",default-features = false }
 
 [build-dependencies]
@@ -41,4 +43,5 @@ std = [
   "frame-support/std",
   "frame-system/std",
   "chainbridge/std",
+  "dorr-pallet/std",
 ]

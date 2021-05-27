@@ -4,5 +4,6 @@ members = [
     "example-erc721",
     "example-pallet",
     "dorr-pallet",
+    "pallet-dorr-rpc",
     "simple-message-pallet"
 ]

@@ -11,6 +11,8 @@ use sp_runtime::{
   ModuleId, Perbill,
 };
 
+use dorr_pallet as dorr;
+
 use crate::{self as simpleMsg, Trait};
 use chainbridge as bridge;
 pub use pallet_balances as balances;
@@ -77,6 +79,20 @@ parameter_types! {
   pub const ProposalLifetime: u64 = 100;
 }
 
+pub type Randomness = pallet_randomness_collective_flip::Module<Test>;
+
+parameter_types! {
+  pub const MaxActiveRelayers: u8 = 3;
+  pub const EpochDuration: u8 = 10;
+}
+
+impl dorr::Trait for Test {
+    type Event = Event;
+    type MaxActiveRelayers = MaxActiveRelayers;
+    type EpochDuration = EpochDuration;
+    type RandomnessSource = Randomness;
+}
+
 impl bridge::Trait for Test {
   type Event = Event;
   type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
@@ -102,7 +118,8 @@ frame_support::construct_runtime!(
     System: system::{Module, Call, Event<T>},
     Balances: balances::{Module, Call, Storage, Config<T>, Event<T>},
     Bridge: bridge::{Module, Call, Storage, Event<T>},
-    SimpleMsg: simpleMsg::{Module, Call, Event<T>}
+    SimpleMsg: simpleMsg::{Module, Call, Event<T>},
+		Dorr: dorr::{Module, Storage, Call, Event<T>},
   }
 );
 
