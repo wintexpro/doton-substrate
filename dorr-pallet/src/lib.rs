@@ -199,8 +199,6 @@ impl<T: Trait> Module<T> {
 			sorted.push(account_id.clone());
 		}
 
-		sorted.sort();
-
 		return sorted;
 	}
 
@@ -212,6 +210,8 @@ impl<T: Trait> Module<T> {
 			let result = <VrfResults<T>>::get(&account_id);
 			pks.push(result.pk);
 		}
+
+		pks.sort();
 
 		return pks;
 	}

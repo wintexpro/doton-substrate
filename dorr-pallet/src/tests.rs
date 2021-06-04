@@ -18,14 +18,14 @@ fn current_epoch_calculating_should_work() {
 #[test]
 fn set_vrf_results_should_work() {
 	new_test_ext(1).execute_with(|| {
-		let pk: String = String::from("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d");
-		assert_ok!(Dorr::set_pk(Origin::signed(ALICE), pk.from_hex().unwrap()));
+		let pk_alice: String = String::from("d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d");
+		assert_ok!(Dorr::set_pk(Origin::signed(ALICE), pk_alice.from_hex().unwrap()));
 
-		let pk: String = String::from("8a3cac9282ba021cc6090f6ddfc826383300facb2101d6c736d794a5b25aa060");
-		assert_ok!(Dorr::set_pk(Origin::signed(BOB), pk.from_hex().unwrap()));
+		let pk_bob: String = String::from("8a3cac9282ba021cc6090f6ddfc826383300facb2101d6c736d794a5b25aa060");
+		assert_ok!(Dorr::set_pk(Origin::signed(BOB), pk_bob.from_hex().unwrap()));
 
-		let pk: String = String::from("e062f3b7ff6d5de1339ccb295d7202c440e9d8bf421ca30ea8c37eae0a7ef559");
-		assert_ok!(Dorr::set_pk(Origin::signed(CHARLIE), pk.from_hex().unwrap()));
+		let pk_charlie: String = String::from("e062f3b7ff6d5de1339ccb295d7202c440e9d8bf421ca30ea8c37eae0a7ef559");
+		assert_ok!(Dorr::set_pk(Origin::signed(CHARLIE), pk_charlie.from_hex().unwrap()));
 
 		run_to_block(6);
 
@@ -50,5 +50,9 @@ fn set_vrf_results_should_work() {
 			String::from("22ed779046c565be3c8f50c6e63cf7e6786a15de7283b86cac53528a2006516c").from_hex().unwrap(),
 			String::from("f0e53ab529aa808395b50842237b7e6ebae0a0694046470aa66336cd4b8b6700846706d0bf9bfbfb72e82f54423c94b0871f9272d1763169921d9c6faa1a350d").from_hex().unwrap())
 		);
+
+		assert_eq!(Dorr::is_active(pk_alice.from_hex().unwrap()), true);
+		assert_eq!(Dorr::is_active(pk_bob.from_hex().unwrap()), false);
+		assert_eq!(Dorr::is_active(pk_charlie.from_hex().unwrap()), true);
 	});
 }
